@@ -1,6 +1,7 @@
 package xyz.delien.customStatus;
 
 import org.bukkit.plugin.java.JavaPlugin;
+import xyz.delien.customStatus.listeners.PlayerJoinListener;
 import xyz.mlserver.mc.util.CustomConfiguration;
 
 public final class CustomStatus extends JavaPlugin {
@@ -31,7 +32,7 @@ public final class CustomStatus extends JavaPlugin {
 //            );
 //        });
 //        // Register event listeners
-//        getServer().getPluginManager().registerEvents(new BlockBreakListener(), this);
+        getServer().getPluginManager().registerEvents(new PlayerJoinListener(), this);
     }
 
     @Override

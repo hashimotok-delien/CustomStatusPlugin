@@ -42,20 +42,24 @@ public class CStatus {
     private static int zeroDamageIntervalWetness = 20;
     private static int defaultWetness = maxWetness;
 
+    private static void initObjective(String objectiveName, String displayName) {
+        if (BOARD.getObjective(objectiveName) == null) {
+            BOARD.registerNewObjective(
+                    objectiveName,
+                    Criteria.DUMMY,
+                    Component.text(displayName)
+            );
+        }
+    }
+
     public static void loadSetting() {
         CustomConfiguration config = CustomStatus.getCustomConfig();
         if (config.getConfig().getBoolean("custom-status.hp.enable", false)) {
             maxHP = config.getConfig().getInt("custom-status.hp.max", 100);
             minHP = config.getConfig().getInt("custom-status.hp.min", 0);
             defaultHP = config.getConfig().getInt("custom-status.hp.default", maxHP);
-            Objective hp_obj = BOARD.getObjective("custom_hp");
-            if (hp_obj == null) {
-                hp_obj = BOARD.registerNewObjective(
-                        "custom_hp",
-                        Criteria.DUMMY,
-                        Component.text("Custom HP")
-                );
-            }
+
+            initObjective("custom_hp", "Custom HP");
         } else {
             enableHP = false;
         }
@@ -63,14 +67,8 @@ public class CStatus {
             maxArmor = config.getConfig().getInt("custom-status.armor.max", 100);
             minArmor = config.getConfig().getInt("custom-status.armor.min", 0);
             defaultArmor = config.getConfig().getInt("custom-status.armor.default", maxArmor);
-            Objective armor_obj = BOARD.getObjective("custom_armor");
-            if (armor_obj == null) {
-                armor_obj = BOARD.registerNewObjective(
-                        "custom_armor",
-                        Criteria.DUMMY,
-                        Component.text("Custom Armor")
-                );
-            }
+
+            initObjective("custom_armor", "Custom Armor");
         } else {
             enableArmor = false;
         }
@@ -82,14 +80,7 @@ public class CStatus {
             zeroDamageAmount = config.getConfig().getInt("custom-status.food.zero-damage-amount", 1);
             zeroDamageInterval = config.getConfig().getInt("custom-status.food.zero-damage-interval", 20);
 
-            Objective food_obj = BOARD.getObjective("custom_food");
-            if (food_obj == null) {
-                food_obj = BOARD.registerNewObjective(
-                        "custom_food",
-                        Criteria.DUMMY,
-                        Component.text("Custom Food")
-                );
-            }
+            initObjective("custom_food", "Custom Food");
         } else {
             enableFood = false;
         }
@@ -101,74 +92,110 @@ public class CStatus {
             zeroDamageAmountWetness = config.getConfig().getInt("custom-status.wetness.zero-damage-amount", 1);
             zeroDamageIntervalWetness = config.getConfig().getInt("custom-status.wetness.zero-damage-interval", 20);
 
-            Objective wetness_obj = BOARD.getObjective("custom_wetness");
-            if (wetness_obj == null) {
-                wetness_obj = BOARD.registerNewObjective(
-                        "custom_wetness",
-                        Criteria.DUMMY,
-                        Component.text("Custom Wetness")
-                );
-            }
+            initObjective("custom_wetness", "Custom Wetness");
         } else {
             enableWetness = false;
         }
 
-        for (Player all : Bukkit.getOnlinePlayers()) {
-            if (enableHP) {
-                setHP(all.getName(), defaultHP);
+        if (enableHP || enableArmor || enableFood || enableWetness) {
+            for (Player all : Bukkit.getOnlinePlayers()) {
+                initPlayerStatus(all.getName());
             }
-            if (enableArmor) {
-                setArmor(all.getName(), defaultArmor);
-            }
-            if (enableFood) {
-                setHunger(all.getName(), defaultFood);
-            }
-            if (enableWetness) {
-                setWetness(all.getName(), defaultWetness);
-            }
+        }
+    }
+
+    public static void initPlayerStatus(String playerName) {
+        if (!enableHP && !enableArmor && !enableFood && !enableWetness) return;
+        if (enableHP) {
+            if (getHP(playerName) == -1) setHP(playerName, defaultHP);
+        }
+        if (enableArmor) {
+            if (getArmor(playerName) == -1) setArmor(playerName, defaultArmor);
+        }
+        if (enableFood) {
+            if (getHunger(playerName) == -1) setHunger(playerName, defaultFood);
+        }
+        if (enableWetness) {
+            if (getWetness(playerName) == -1) setWetness(playerName, defaultWetness);
         }
     }
 
     public static int getHP(String playerName) {
         Objective ps_obj = BOARD.getObjective("custom_hp");
-        if (ps_obj == null) return -1;
+        if (ps_obj == null) initObjective("custom_hp", "Custom HP");
         Score score = ps_obj.getScore(playerName);
         return score.getScore();
     }
 
-    public static void setHP(String playerName, int hp) {
+    public static int setHP(String playerName, int hp) {
         Objective ps_obj = BOARD.getObjective("custom_hp");
-        if (ps_obj == null) return;
+        if (ps_obj == null) initObjective("custom_hp", "Custom HP");
+        int newHP = hp;
+        if (newHP > maxHP) newHP = maxHP;
+        if (newHP < minHP) newHP = minHP;
         Score score = ps_obj.getScore(playerName);
-        score.setScore(hp);
+        score.setScore(newHP);
+        return newHP;
+    }
+
+    public static int addHP(String playerName, int hp) {
+        return setHP(playerName, getHP(playerName) + hp);
+    }
+
+    public static int removeHP(String playerName, int hp) {
+        return setHP(playerName, getHP(playerName) - hp);
     }
 
     public static int getHunger(String playerName) {
         Objective ps_obj = BOARD.getObjective("custom_food");
-        if (ps_obj == null) return -1;
+        if (ps_obj == null) initObjective("custom_food", "Custom Food");
         Score score = ps_obj.getScore(playerName);
         return score.getScore();
     }
 
-    public static void setHunger(String playerName, int food) {
+    public static int setHunger(String playerName, int food) {
         Objective ps_obj = BOARD.getObjective("custom_food");
-        if (ps_obj == null) return;
+        if (ps_obj == null) initObjective("custom_food", "Custom Food");
+        int newFood = food;
+        if (newFood > maxFood) newFood = maxFood;
+        if (newFood < minFood) newFood = minFood;
         Score score = ps_obj.getScore(playerName);
-        score.setScore(food);
+        score.setScore(newFood);
+        return newFood;
+    }
+
+    public  static int addHunger(String playerName, int food) {
+        return setHunger(playerName, getHunger(playerName) + food);
+    }
+
+    public static int removeHunger(String playerName, int food) {
+        return setHunger(playerName, getHunger(playerName) - food);
     }
 
     public static int getWetness(String playerName) {
         Objective ps_obj = BOARD.getObjective("custom_wetness");
-        if (ps_obj == null) return -1;
+        if (ps_obj == null) initObjective("custom_wetness", "Custom Wetness");
         Score score = ps_obj.getScore(playerName);
         return score.getScore();
     }
 
-    public static void setWetness(String playerName, int wetness) {
+    public static int setWetness(String playerName, int wetness) {
         Objective ps_obj = BOARD.getObjective("custom_wetness");
-        if (ps_obj == null) return;
+        if (ps_obj == null) initObjective("custom_wetness", "Custom Wetness");
+        int newWetness = wetness;
+        if (newWetness > maxWetness) newWetness = maxWetness;
+        if (newWetness < minWetness) newWetness = minWetness;
         Score score = ps_obj.getScore(playerName);
-        score.setScore(wetness);
+        score.setScore(newWetness);
+        return newWetness;
+    }
+
+    public static int addWetness(String playerName, int wetness) {
+        return setWetness(playerName, getWetness(playerName) + wetness);
+    }
+
+    public static int removeWetness(String playerName, int wetness) {
+        return setWetness(playerName, getWetness(playerName) - wetness);
     }
 
     public static int getArmor(String playerName) {
@@ -178,11 +205,20 @@ public class CStatus {
         return score.getScore();
     }
 
-    public static void setArmor(String playerName, int armor) {
+    public static int setArmor(String playerName, int armor) {
         Objective ps_obj = BOARD.getObjective("custom_armor");
-        if (ps_obj == null) return;
+        if (ps_obj == null) return -1;
         Score score = ps_obj.getScore(playerName);
         score.setScore(armor);
+        return armor;
+    }
+
+    public static int addArmor(String playerName, int armor) {
+        return setArmor(playerName, getArmor(playerName) + armor);
+    }
+
+    public static int removeArmor(String playerName, int armor) {
+        return setArmor(playerName, getArmor(playerName) - armor);
     }
 
 }
