@@ -1,8 +1,12 @@
 package xyz.delien.customStatus.utils.status;
 
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.Criteria;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Score;
@@ -10,6 +14,10 @@ import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
 import xyz.delien.customStatus.CustomStatus;
 import xyz.mlserver.mc.util.CustomConfiguration;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 public class CStatus {
 
@@ -41,6 +49,22 @@ public class CStatus {
     private static int zeroDamageAmountWetness = 1;
     private static int zeroDamageIntervalWetness = 20;
     private static int defaultWetness = maxWetness;
+
+    private static boolean enableStress = true;
+    private static int maxStress = 100;
+    private static int minStress = 0;
+    private static int defaultStress = minStress;
+    private static Table <String, Integer, List<PotionEffectType>> stressDebuffEffectTypes = HashBasedTable.create();
+    private static Table <String, Integer, Integer> stressDebuffEffectAmplifier = HashBasedTable.create();
+
+    private static boolean enableStamina = true;
+    private static int maxStamina = 100;
+    private static int minStamina = 0;
+    private static int defaultStamina = maxStamina;
+    private static int countdownPerSecStamina = 1;
+    private static int countupPerSecStamina = 1;
+    private static List<PotionEffectType> staminaZeroDebuffEffectTypes = new ArrayList<>();
+    private static int staminaZeroDebuffEffectAmplifier = 1;
 
     private static void initObjective(String objectiveName, String displayName) {
         if (BOARD.getObjective(objectiveName) == null) {
@@ -97,7 +121,48 @@ public class CStatus {
             enableWetness = false;
         }
 
-        if (enableHP || enableArmor || enableFood || enableWetness) {
+        if (config.getConfig().getBoolean("custom-status.stress.enable", false)) {
+            maxStress = config.getConfig().getInt("custom-status.stress.max", 100);
+            minStress = config.getConfig().getInt("custom-status.stress.min", 0);
+            defaultStress = config.getConfig().getInt("custom-status.stress.default", minStress);
+            stressDebuffEffectTypes = HashBasedTable.create();
+            stressDebuffEffectAmplifier = HashBasedTable.create();
+            for (String keyPer : config.getConfig().getConfigurationSection("custom-status.stress.debuff").getKeys(false)) {
+                try {
+                    int per = Integer.parseInt(keyPer);
+
+                    List<PotionEffectType> effects = config.getConfig().getStringList("custom-status.stress.debuff." + keyPer).stream()
+                            .map(PotionEffectType::getByName)
+                            .toList();
+                    stressDebuffEffectTypes.put(keyPer, per, effects);
+                    stressDebuffEffectAmplifier.put(keyPer, per, config.getConfig().getInt("custom-status.stress.debuff." + keyPer + ".amplifier", 1));
+                } catch (NumberFormatException e) {
+                    // Handle the case where the key is not a valid integer
+                }
+            }
+
+            initObjective("custom_stress", "Custom Stress");
+        } else {
+            enableStress = false;
+        }
+
+        if (config.getConfig().getBoolean("custom-status.stamina.enable", false)) {
+            maxStamina = config.getConfig().getInt("custom-status.stamina.max", 100);
+            minStamina = config.getConfig().getInt("custom-status.stamina.min", 0);
+            defaultStamina = config.getConfig().getInt("custom-status.stamina.default", maxStamina);
+            countdownPerSecStamina = config.getConfig().getInt("custom-status.stamina.countdown-per-sec", 1);
+            countupPerSecStamina = config.getConfig().getInt("custom-status.stamina.countup-per-sec", 1);
+            staminaZeroDebuffEffectTypes = config.getConfig().getStringList("custom-status.stamina.zero-debuff").stream()
+                    .map(PotionEffectType::getByName)
+                    .toList();
+            staminaZeroDebuffEffectAmplifier = config.getConfig().getInt("custom-status.stamina.zero-debuff-amplifier", 1);
+
+            initObjective("custom_stamina", "Custom Stamina");
+        } else {
+            enableStamina = false;
+        }
+
+        if (enableHP || enableArmor || enableFood || enableWetness || enableStress || enableStamina) {
             for (Player all : Bukkit.getOnlinePlayers()) {
                 initPlayerStatus(all.getName());
             }
@@ -105,7 +170,7 @@ public class CStatus {
     }
 
     public static void initPlayerStatus(String playerName) {
-        if (!enableHP && !enableArmor && !enableFood && !enableWetness) return;
+        if (!enableHP && !enableArmor && !enableFood && !enableWetness && !enableStress && !enableStamina) return;
         if (enableHP) {
             if (getHP(playerName) == -1) setHP(playerName, defaultHP);
         }
@@ -118,6 +183,35 @@ public class CStatus {
         if (enableWetness) {
             if (getWetness(playerName) == -1) setWetness(playerName, defaultWetness);
         }
+        if (enableStress) {
+            if (getStress(playerName) == -1) setStress(playerName, defaultStress);
+        }
+        if (enableStamina) {
+            if (getStamina(playerName) == -1) setStamina(playerName, defaultStamina);
+        }
+    }
+
+    public static void timerStart() {
+        if (!enableHP && !enableArmor && !enableFood && !enableWetness && !enableStress && !enableStamina) return;
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (Player all : Bukkit.getOnlinePlayers()) {
+                    if (enableFood) {
+                        removeHunger(all.getName(), countdownPerMinuteFood);
+                        if (getHunger(all.getName()) <= 0) {
+                            all.damage(zeroDamageAmount);
+                        }
+                    }
+                    if (enableWetness) {
+                        removeWetness(all.getName(), countdownPerMinuteWetness);
+                        if (getWetness(all.getName()) <= 0) {
+                            all.damage(zeroDamageAmountWetness);
+                        }
+                    }
+                }
+            }
+        }.runTaskTimer(CustomStatus.getPlugin(), 0, 20 * 60);
     }
 
     public static int getHP(String playerName) {
@@ -219,6 +313,62 @@ public class CStatus {
 
     public static int removeArmor(String playerName, int armor) {
         return setArmor(playerName, getArmor(playerName) - armor);
+    }
+
+    public static int getStress(String playerName) {
+        if (!enableStress) return -1;
+        Objective ps_obj = BOARD.getObjective("custom_stress");
+        if (ps_obj == null) return -1;
+        Score score = ps_obj.getScore(playerName);
+        return score.getScore();
+    }
+
+    public static int setStress(String playerName, int stress) {
+        if (!enableStress) return -1;
+        Objective ps_obj = BOARD.getObjective("custom_stress");
+        if (ps_obj == null) return -1;
+        int newStress = stress;
+        if (newStress > maxStress) newStress = maxStress;
+        if (newStress < minStress) newStress = minStress;
+        Score score = ps_obj.getScore(playerName);
+        score.setScore(newStress);
+        return newStress;
+    }
+
+    public static int addStress(String playerName, int stress) {
+        return setStress(playerName, getStress(playerName) + stress);
+    }
+
+    public static int removeStress(String playerName, int stress) {
+        return setStress(playerName, getStress(playerName) - stress);
+    }
+
+    public static int getStamina(String playerName) {
+        if (!enableStamina) return -1;
+        Objective ps_obj = BOARD.getObjective("custom_stamina");
+        if (ps_obj == null) return -1;
+        Score score = ps_obj.getScore(playerName);
+        return score.getScore();
+    }
+
+    public static int setStamina(String playerName, int stamina) {
+        if (!enableStamina) return -1;
+        Objective ps_obj = BOARD.getObjective("custom_stamina");
+        if (ps_obj == null) return -1;
+        int newStamina = stamina;
+        if (newStamina > maxStamina) newStamina = maxStamina;
+        if (newStamina < minStamina) newStamina = minStamina;
+        Score score = ps_obj.getScore(playerName);
+        score.setScore(newStamina);
+        return newStamina;
+    }
+
+    public static int addStamina(String playerName, int stamina) {
+        return setStamina(playerName, getStamina(playerName) + stamina);
+    }
+
+    public static int removeStamina(String playerName, int stamina) {
+        return setStamina(playerName, getStamina(playerName) - stamina);
     }
 
 }

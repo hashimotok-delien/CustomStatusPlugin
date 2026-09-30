@@ -27,3 +27,33 @@ custom-status:
         zero-damage-amount: 1 # 水分値が0になったときに受けるダメージ量
         zero-damage-interval: 20 # 水分値が0になったときに受けるダメージの間隔（ティック数）
         default: -1 # デフォルトの水分値(-1の場合は最大水分値)
+    stress:
+        enabled: true # カスタムストレス有効化
+        max: 100 # 最大ストレス値
+        min: 0 # 最小ストレス値
+        countdown-per-minute: 1 # 1分ごとに減少するストレス値
+        debuff:
+            80: # ストレス値が80以上のときのデバフ
+                effects:
+                    - SLOW
+                amplifier: 3
+            60: # ストレス値が60以上のときのデバフ
+                effects:
+                    - SLOW
+                amplifier: 2
+            40: # ストレス値が40以上のときのデバフ
+                effects:
+                    - SLOW
+                amplifier: 1
+        default: -1 # デフォルトのストレス値(-1の場合は最大ストレス値)
+    stamina:
+        enabled: true # カスタムスタミナ有効化
+        max: 100 # 最大スタミナ値
+        min: 0 # 最小スタミナ値
+        countdown-per-sec: 1 # 1秒ごとに減少するスタミナ値(走っているとき)
+        countup-per-sec: 1 # 1秒ごとに増加するスタミナ値(走っていないとき)
+        zero-debuff:
+            effects:
+                - SLOW
+            amplifier: 1
+        default: -1 # デフォルトのスタミナ値(-1の場合は最大スタミナ値)
