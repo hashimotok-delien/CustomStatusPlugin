@@ -1,0 +1,12 @@
+name: CustomStatus
+description: $description
+prefix: DbDv2
+version: '${version}'
+
+main: xyz.delien.customStatus.CustomStatus
+bootstrapper: xyz.delien.customStatus.CustomStatusBootstrap
+loader: xyz.delien.customStatus.CustomStatusLoader
+api-version: '26.2'
+load: POSTWORLD
+
+authors: [ hashimotok-delien ]

@@ -1,0 +1,29 @@
+custom-status:
+    hp:
+        enabled: true # カスタム体力有効化
+        max: 100 # 最大体力値
+        min: 0 # 最小体力値
+        default: -1 # デフォルトの体力値(-1の場合は最大体力値)
+    armor:
+        enabled: true # カスタム防具有効化
+        max: 100 # 最大防具値
+        min: 0 # 最小防具値
+        default: -1 # デフォルトの防具値(-1の場合は最大防具値)
+    food:
+        enabled: true # カスタム空腹有効化
+        max: 100 # 最大空腹値
+        min: 0 # 最小空腹値
+        countdown-per-minute: 1 # 1分ごとに減少する空腹値
+        zero-damage: true # 空腹値が0になったときにダメージを受けるかどうか
+        zero-damage-amount: 1 # 空腹値が0になったときに受けるダメージ量
+        zero-damage-interval: 20 # 空腹値が0になったときに受けるダメージの間隔（ティック数）
+        default: -1 # デフォルトの空腹値(-1の場合は最大空腹値)
+    wetness:
+        enabled: true # カスタム水分有効化
+        max: 100 # 最大水分値
+        min: 0 # 最小水分値
+        countdown-per-minute: 1 # 1分ごとに減少する水分値
+        zero-damage: true # 水分値が0になったときにダメージを受けるかどうか
+        zero-damage-amount: 1 # 水分値が0になったときに受けるダメージ量
+        zero-damage-interval: 20 # 水分値が0になったときに受けるダメージの間隔（ティック数）
+        default: -1 # デフォルトの水分値(-1の場合は最大水分値)
