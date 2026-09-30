@@ -2,6 +2,7 @@ package xyz.delien.customStatus;
 
 import org.bukkit.plugin.java.JavaPlugin;
 import xyz.delien.customStatus.listeners.PlayerJoinListener;
+import xyz.delien.customStatus.utils.status.CStatus;
 import xyz.mlserver.mc.util.CustomConfiguration;
 
 public final class CustomStatus extends JavaPlugin {
@@ -24,6 +25,8 @@ public final class CustomStatus extends JavaPlugin {
 
         config = new CustomConfiguration(this);
         config.saveDefaultConfig();
+
+        CStatus.loadSetting();
         // Plugin startup logic
 //        this.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
 //            event.registrar().register(
